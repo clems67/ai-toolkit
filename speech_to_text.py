@@ -2,6 +2,7 @@ from transformers import VoxtralForConditionalGeneration, AutoProcessor
 from pydub import AudioSegment, silence
 import torch, time, librosa, os, config, time_method
 from collections import deque
+from typing import List
 
 config = config.load_config()
 MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
@@ -12,9 +13,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr") -> str:
     TARGET_SAMPLE_RATE = 16000
 
     with time_method.timed("download_audio"):
-        split_audio(audio_path)
-
-        audio_chunks_paths = get_audio_chunks_paths(audio_path)
+        audio_chunks_paths = split_audio(audio_path)
 
         processor = AutoProcessor.from_pretrained(repo_id)
         model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
@@ -45,7 +44,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr") -> str:
             torch.cuda.empty_cache()
     return output_path
 
-def split_audio(audio_path: str):
+def split_audio(audio_path: str) -> List[str]:
     with time_method.timed("split_audio"):
         MIN_SILENCE_LEN = 700  # ms
         SILENCE_THRESH = -40  # dBFS
@@ -61,15 +60,15 @@ def split_audio(audio_path: str):
             silence_thresh=SILENCE_THRESH,
             keep_silence=KEEP_SILENCE,
         )
-        print_chunks_info(initial_chunks)
+        print_chunks_info(initial_chunks, f"Silence detection has split audio into {len(raw_chunks)} chunks")
 
         split_chunks = split_too_big_chunks(initial_chunks)
-        print_chunks_info(split_chunks)
+        print_chunks_info(split_chunks, f"Splitting too big chunks, now there is : {len(raw_chunks)} chunks")
 
         merged_chunks = merge_too_small_chunks(split_chunks)
-        print_chunks_info(merged_chunks)
+        print_chunks_info(merged_chunks, f"Merging too small chunks, now there is : {len(raw_chunks)} chunks")
 
-        save_chunks_as_mp3(merged_chunks, audio_path)
+        return save_chunks_as_mp3(merged_chunks, audio_path)
 
 def split_too_big_chunks(initial_chunks):
     to_process = deque(initial_chunks)  # BIG queue that will shrink
@@ -105,37 +104,27 @@ def merge_too_small_chunks(result):
     final_result.append(buffer)
     return final_result
 
-
-def print_chunks_info(raw_chunks):
-    if not config['speech_to_text']['details_log']:
-        return
-
-    print(f"Split audio into {len(raw_chunks)} chunks")
-    for chunk in raw_chunks:
-        seconds = len(chunk) // 1000  # Convert milliseconds to seconds
-        minutes = seconds // 60  # Get the minutes
-        remaining_seconds = seconds % 60  # Get the remaining seconds
-        print(f"Writing chunk of length {minutes} min {remaining_seconds} sec to file")
-
-def save_chunks_as_mp3(chunks, original_file_name:str):
+def save_chunks_as_mp3(chunks, original_file_name:str) -> List[str]:
     file_name_with_extension = os.path.basename(original_file_name)
     file_name, _ = os.path.splitext(file_name_with_extension)
     path = f"audio_chunks/{file_name}"
     os.makedirs(path, exist_ok=True)
 
+    paths_to_return = []
     for i, chunk in enumerate(chunks):
         output_path = f"{path}/chunk_{i}.mp3"
         chunk.export(output_path, format="mp3")
+        paths_to_return.append(output_path)
 
-def get_audio_chunks_paths(original_audio_path: str):
-    print(f"original_audio_path: {original_audio_path}")
-    filename_with_extension = os.path.basename(original_audio_path)
-    filename, _ = os.path.splitext(filename_with_extension)
-    chunks_directory = f"audio_chunks/{filename}"
+    return paths_to_return
 
-    audios = []
-    for chunk_filename in os.listdir(chunks_directory):
-        if os.path.isfile(os.path.join(chunks_directory, chunk_filename)):
-            audios.append(f"audio_chunks/{filename}/{chunk_filename}")
+def print_chunks_info(raw_chunks, text):
+    if not config['speech_to_text']['details_log']:
+        return
 
-    return audios
+    print(text)
+    for chunk in raw_chunks:
+        seconds = len(chunk) // 1000  # Convert milliseconds to seconds
+        minutes = seconds // 60  # Get the minutes
+        remaining_seconds = seconds % 60  # Get the remaining seconds
+        print(f"Writing chunk of length {minutes} min {remaining_seconds} sec to file")
