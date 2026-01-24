@@ -1,95 +1,75 @@
 from transformers import VoxtralForConditionalGeneration, AutoProcessor
 from pydub import AudioSegment, silence
-import torch, time, librosa, os, config
+import torch, time, librosa, os, config, time_method
 from collections import deque
 
 config = config.load_config()
 MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
 
 def transcribe_audio_to_txt(audio_path: str, language: str = "fr") -> str:
-    start = time.time()
-    print(time.strftime("%d/%m/%Y at %H:%M:%S"))
-
-    split_audio(audio_path)
-
-    TARGET_SAMPLE_RATE = 16000
-
-    audio_chunks_paths = get_audio_chunks_paths(audio_path)
-
     device = "cuda"
     repo_id = "mistralai/Voxtral-Mini-3B-2507"
+    TARGET_SAMPLE_RATE = 16000
 
-    processor = AutoProcessor.from_pretrained(repo_id)
-    model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
+    with time_method.timed("download_audio"):
+        split_audio(audio_path)
 
+        audio_chunks_paths = get_audio_chunks_paths(audio_path)
 
-    for audio_chunk_path in audio_chunks_paths:
-        audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
+        processor = AutoProcessor.from_pretrained(repo_id)
+        model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
 
-        inputs = processor.apply_transcription_request(language=language, audio=audio, format=["mp3"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
-        inputs = inputs.to(device, dtype=torch.bfloat16)
+        for audio_chunk_path in audio_chunks_paths:
+            audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
 
-        outputs = model.generate(**inputs, max_new_tokens=5000)
-        decoded_outputs = processor.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
+            inputs = processor.apply_transcription_request(language=language, audio=audio, format=["mp3"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
+            inputs = inputs.to(device, dtype=torch.bfloat16)
 
-        # Ensure output directory exists
-        os.makedirs("transcriptions", exist_ok=True)
+            outputs = model.generate(**inputs, max_new_tokens=5000)
+            decoded_outputs = processor.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
 
-        # Build output file path
-        audio_filename = os.path.splitext(os.path.basename(audio_path))[0]
-        output_path = os.path.join("transcriptions", f"{audio_filename}.txt")
+            # Ensure output directory exists
+            os.makedirs("transcriptions", exist_ok=True)
 
-        # Write transcription to file
-        with open(output_path, "a", encoding="utf-8") as f:
-            for decoded_output in decoded_outputs:
-                f.write(decoded_output.strip())
+            # Build output file path
+            audio_filename = os.path.splitext(os.path.basename(audio_path))[0]
+            output_path = os.path.join("transcriptions", f"{audio_filename}.txt")
 
-        #clear
-        del audio, inputs, outputs
-        torch.cuda.empty_cache()
+            # Write transcription to file
+            with open(output_path, "a", encoding="utf-8") as f:
+                for decoded_output in decoded_outputs:
+                    f.write(decoded_output.strip())
 
-    end = time.time()
-    elapsed = end - start
-    minutes = int(elapsed // 60)
-    seconds = int(elapsed % 60)
-    print(f"Task finished in {minutes} min {seconds} sec")
-    print(f"Transcription written to: {output_path}")
-
+            #clear
+            del audio, inputs, outputs
+            torch.cuda.empty_cache()
     return output_path
 
 def split_audio(audio_path: str):
-    start = time.time()
-    print(time.strftime("%d/%m/%Y at %H:%M:%S"))
+    with time_method.timed("split_audio"):
+        MIN_SILENCE_LEN = 700  # ms
+        SILENCE_THRESH = -40  # dBFS
+        KEEP_SILENCE = 800  # ms
 
-    MIN_SILENCE_LEN = 700  # ms
-    SILENCE_THRESH = -40  # dBFS
-    KEEP_SILENCE = 800  # ms
+        OUTPUT_DIR = "audio_chunks"
+        audio = AudioSegment.from_file(audio_path)
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    OUTPUT_DIR = "audio_chunks"
-    audio = AudioSegment.from_file(audio_path)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+        initial_chunks = silence.split_on_silence(
+            audio,
+            min_silence_len=MIN_SILENCE_LEN,
+            silence_thresh=SILENCE_THRESH,
+            keep_silence=KEEP_SILENCE,
+        )
+        print_chunks_info(initial_chunks)
 
-    initial_chunks = silence.split_on_silence(
-        audio,
-        min_silence_len=MIN_SILENCE_LEN,
-        silence_thresh=SILENCE_THRESH,
-        keep_silence=KEEP_SILENCE,
-    )
-    print_chunks_info(initial_chunks)
+        split_chunks = split_too_big_chunks(initial_chunks)
+        print_chunks_info(split_chunks)
 
-    split_chunks = split_too_big_chunks(initial_chunks)
-    print_chunks_info(split_chunks)
+        merged_chunks = merge_too_small_chunks(split_chunks)
+        print_chunks_info(merged_chunks)
 
-    merged_chunks = merge_too_small_chunks(split_chunks)
-    print_chunks_info(merged_chunks)
-
-    save_chunks_as_mp3(merged_chunks, audio_path)
-
-    end = time.time()
-    elapsed = end - start
-    minutes = int(elapsed // 60)
-    seconds = int(elapsed % 60)
-    print(f"Task finished in {minutes} min {seconds} sec")
+        save_chunks_as_mp3(merged_chunks, audio_path)
 
 def split_too_big_chunks(initial_chunks):
     to_process = deque(initial_chunks)  # BIG queue that will shrink
