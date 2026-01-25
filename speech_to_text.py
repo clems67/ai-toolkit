@@ -12,12 +12,12 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr") -> str:
     repo_id = "mistralai/Voxtral-Mini-3B-2507"
     TARGET_SAMPLE_RATE = 16000
 
-    with time_method.timed("download_audio"):
-        audio_chunks_paths = split_audio(audio_path)
+    audio_chunks_paths = split_audio(audio_path)
 
-        processor = AutoProcessor.from_pretrained(repo_id)
-        model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
+    processor = AutoProcessor.from_pretrained(repo_id)
+    model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
 
+    with time_method.timed("transcribe_audio_to_txt"):
         for audio_chunk_path in audio_chunks_paths:
             audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
 
@@ -44,31 +44,31 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr") -> str:
             torch.cuda.empty_cache()
     return output_path
 
+@time_method.timed_decorator("split_audio")
 def split_audio(audio_path: str) -> List[str]:
-    with time_method.timed("split_audio"):
-        MIN_SILENCE_LEN = 700  # ms
-        SILENCE_THRESH = -40  # dBFS
-        KEEP_SILENCE = 800  # ms
+    MIN_SILENCE_LEN = 700  # ms
+    SILENCE_THRESH = -40  # dBFS
+    KEEP_SILENCE = 800  # ms
 
-        OUTPUT_DIR = "audio_chunks"
-        audio = AudioSegment.from_file(audio_path)
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
+    OUTPUT_DIR = "audio_chunks"
+    audio = AudioSegment.from_file(audio_path)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-        initial_chunks = silence.split_on_silence(
-            audio,
-            min_silence_len=MIN_SILENCE_LEN,
-            silence_thresh=SILENCE_THRESH,
-            keep_silence=KEEP_SILENCE,
-        )
-        print_chunks_info(initial_chunks, f"Silence detection has split audio into {len(raw_chunks)} chunks")
+    initial_chunks = silence.split_on_silence(
+        audio,
+        min_silence_len=MIN_SILENCE_LEN,
+        silence_thresh=SILENCE_THRESH,
+        keep_silence=KEEP_SILENCE,
+    )
+    print_chunks_info(initial_chunks, f"Silence detection has split audio into {len(initial_chunks)} chunks")
 
-        split_chunks = split_too_big_chunks(initial_chunks)
-        print_chunks_info(split_chunks, f"Splitting too big chunks, now there is : {len(raw_chunks)} chunks")
+    split_chunks = split_too_big_chunks(initial_chunks)
+    print_chunks_info(split_chunks, f"Splitting too big chunks, now there is : {len(split_chunks)} chunks")
 
-        merged_chunks = merge_too_small_chunks(split_chunks)
-        print_chunks_info(merged_chunks, f"Merging too small chunks, now there is : {len(raw_chunks)} chunks")
+    merged_chunks = merge_too_small_chunks(split_chunks)
+    print_chunks_info(merged_chunks, f"Merging too small chunks, now there is : {len(merged_chunks)} chunks")
 
-        return save_chunks_as_mp3(merged_chunks, audio_path)
+    return save_chunks_as_mp3(merged_chunks, audio_path)
 
 def split_too_big_chunks(initial_chunks):
     to_process = deque(initial_chunks)  # BIG queue that will shrink
