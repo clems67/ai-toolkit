@@ -21,7 +21,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr") -> str:
         for audio_chunk_path in audio_chunks_paths:
             audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
 
-            inputs = processor.apply_transcription_request(language=language, audio=audio, format=["mp3"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
+            inputs = processor.apply_transcription_request(language=language, audio=audio, format=["wav"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
             inputs = inputs.to(device, dtype=torch.bfloat16)
 
             outputs = model.generate(**inputs, max_new_tokens=5000)
@@ -68,7 +68,7 @@ def split_audio(audio_path: str) -> List[str]:
     merged_chunks = merge_too_small_chunks(split_chunks)
     print_chunks_info(merged_chunks, f"Merging too small chunks, now there is : {len(merged_chunks)} chunks")
 
-    return save_chunks_as_mp3(merged_chunks, audio_path)
+    return save_chunks_as_wav(merged_chunks, audio_path)
 
 def split_too_big_chunks(initial_chunks):
     to_process = deque(initial_chunks)  # BIG queue that will shrink
@@ -104,7 +104,7 @@ def merge_too_small_chunks(result):
     final_result.append(buffer)
     return final_result
 
-def save_chunks_as_mp3(chunks, original_file_name:str) -> List[str]:
+def save_chunks_as_wav(chunks, original_file_name:str) -> List[str]:
     file_name_with_extension = os.path.basename(original_file_name)
     file_name, _ = os.path.splitext(file_name_with_extension)
     path = f"audio_chunks/{file_name}"
@@ -112,8 +112,8 @@ def save_chunks_as_mp3(chunks, original_file_name:str) -> List[str]:
 
     paths_to_return = []
     for i, chunk in enumerate(chunks):
-        output_path = f"{path}/chunk_{i}.mp3"
-        chunk.export(output_path, format="mp3")
+        output_path = f"{path}/chunk_{i}.wav"
+        chunk.export(output_path, format="wav")
         paths_to_return.append(output_path)
 
     return paths_to_return

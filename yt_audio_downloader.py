@@ -9,8 +9,7 @@ def download_audio(url: str) -> str:
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192",
+                    "preferredcodec": "wav"
                 }
             ],
         }
