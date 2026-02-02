@@ -6,13 +6,14 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
 .venv
-
 .idea
+.vscode
 
 audios
 audio_chunks
 transcriptions
+models
+bionic_reading
 
 config.local.yaml

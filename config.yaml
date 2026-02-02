@@ -2,3 +2,6 @@
 speech_to_text:
   max_chunk_length_minutes: 4
   details_log: false
+
+lm_studio:
+  server_api_host: "127.0.0.1:1234"

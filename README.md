@@ -8,4 +8,4 @@ Setup environment :
 
 Run the program :
 <br>
-`.venv/bin/python main.py`
+`uv run python src/main.py`

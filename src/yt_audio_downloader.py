@@ -1,5 +1,5 @@
 from yt_dlp import YoutubeDL
-import time_method
+from src import time_method
 
 def download_audio(url: str) -> str:
     with time_method.timed("download_audio"):
