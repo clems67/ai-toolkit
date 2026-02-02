@@ -1,7 +1,7 @@
 from transformers import VoxtralForConditionalGeneration, AutoProcessor
 from pydub import AudioSegment, silence
 import torch, librosa, os
-from src import config, time_method, python_tools
+import config, time_method, python_tools
 from collections import deque
 from typing import List
 
