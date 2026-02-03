@@ -1,6 +1,17 @@
 import os, yaml
 
-def deep_merge(dict1, dict2):
+def load_config(base_path="config.yaml", local_path="config.local.yaml") -> dict:
+    with open(base_path, "r") as f:
+        config = yaml.safe_load(f)
+
+    if os.path.exists(local_path):
+        with open(local_path, "r") as f:
+            local_config = yaml.safe_load(f)
+        config = deep_merge(config, local_config)
+
+    return config
+
+def deep_merge(dict1, dict2) -> dict:
     if dict2 is None:
         return dict1
 
@@ -14,14 +25,3 @@ def deep_merge(dict1, dict2):
         else:
             dict1[key] = value
     return dict1
-
-def load_config(base_path="config.yaml", local_path="config.local.yaml"):
-    with open(base_path, "r") as f:
-        config = yaml.safe_load(f)
-
-    if os.path.exists(local_path):
-        with open(local_path, "r") as f:
-            local_config = yaml.safe_load(f)
-        config = deep_merge(config, local_config)
-
-    return config

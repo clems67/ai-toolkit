@@ -28,17 +28,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr", keep_audio: b
             outputs = model.generate(**inputs, max_new_tokens=5000)
             decoded_outputs = processor.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
 
-            # Ensure output directory exists
-            os.makedirs("../transcriptions", exist_ok=True)
-
-            # Build output file path
-            audio_filename = os.path.splitext(os.path.basename(audio_path))[0]
-            output_path = os.path.join("../transcriptions", f"{audio_filename}.txt")
-
-            # Write transcription to file
-            with open(output_path, "a", encoding="utf-8") as f:
-                for decoded_output in decoded_outputs:
-                    f.write(decoded_output.strip())
+            output_path = save_transcription(audio_path, decoded_outputs)
 
             #clear
             del audio, inputs, outputs
@@ -135,3 +125,14 @@ def print_chunks_info(raw_chunks, text):
         minutes = seconds // 60  # Get the minutes
         remaining_seconds = seconds % 60  # Get the remaining seconds
         print(f"Writing chunk of length {minutes} min {remaining_seconds} sec to file")
+
+def save_transcription(audio_path, decoded_outputs) -> str:
+    os.makedirs("./transcriptions", exist_ok=True)
+
+    audio_filename = os.path.splitext(os.path.basename(audio_path))[0]
+    output_path = os.path.join("./transcriptions", f"{audio_filename}.txt")
+
+    with open(output_path, "a", encoding="utf-8") as f:
+        for decoded_output in decoded_outputs:
+            f.write(decoded_output.strip())
+    return output_path
