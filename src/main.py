@@ -9,6 +9,8 @@ prompt = """
 Explain me why this text is so much important in today's culture.
 Explain briefly in a few sentences (10 maximum).
 """
+temperature = 0.7
+max_output_tokens = 200
 
 @time_method.timed_decorator("main.py")
 def main():    
@@ -20,7 +22,7 @@ def main():
 
     content = open(transcript_path, "r").readlines()
     chat = prompt + f"Transcript of the youtube video: {content}"
-    res = lm_studio.chat(chat)
+    res = lm_studio.chat(chat, temperature, max_output_tokens)
 
     print(Fore.GREEN + "LLM response :")
     print(Style.RESET_ALL)

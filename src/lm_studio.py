@@ -33,7 +33,9 @@ def execute_chat_request(content: str, temperature : int = 0.7, max_tokens: int 
     url = f"http://{ip}/api/v1/chat"
     body = {
         "model": config_lms["model"],
-        "input": content
+        "input": content,
+        "temperature": temperature,
+        "max_output_tokens": max_tokens
     }
     return requests.post(url, json=body).json()
 
