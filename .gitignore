@@ -15,5 +15,6 @@ audio_chunks
 transcriptions
 models
 bionic_reading
+llm_response
 
 config.local.yaml

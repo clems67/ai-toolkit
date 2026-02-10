@@ -1,24 +1,63 @@
 import lmstudio as lms
 import config, requests, time
+import datetime, os, json, re, time_method
 from colorama import Fore, Style
+from typing import Optional, Dict, Any
 
 config_lms = config.load_config()["lm_studio"]
-lms.configure_default_client(config_lms["server_ip"])
+ip = config_lms["server_api_host"]
+lms.configure_default_client(ip)
 
+@time_method.timed_decorator("LLM question")
 def chat(content: str, temperature : int = 0.7, max_tokens: int = 1000) -> str:
     if not is_model_downloaded():
         download_model() #{'error': {'type': 'not_implemented', 'message': 'Specifying quantizations for downloading models with LM Studio Model Catalog identifiers is coming soon",'}}
     
-    model = lms.llm(config_lms["model"])
-    response = model.respond(
-        content,
-        config={
-            "temperature": temperature,
-            "maxTokens": max_tokens
-        }
-    )
-    model.unload()
-    return response
+    unload_all_models()
+    load_model()
+
+    res = execute_chat_request(content, temperature, max_tokens)
+
+    if is_context_window_too_small(res):
+        unload_all_models()
+        context_window_int = get_context_window_required(res) + max_tokens
+        load_model(context_window_int)
+        res = execute_chat_request(content, temperature, max_tokens)
+
+    save_response(res)
+
+    unload_all_models()
+    return res
+
+def execute_chat_request(content: str, temperature : int = 0.7, max_tokens: int = 1000) -> str:
+    url = f"http://{ip}/api/v1/chat"
+    body = {
+        "model": config_lms["model"],
+        "input": content
+    }
+    return requests.post(url, json=body).json()
+
+
+ERROR_PATTERN = re.compile(
+    r"Cannot truncate prompt with n_keep \((?P<n_keep>\d+)\) >= n_ctx \((?P<n_ctx>\d+)\)"
+)
+
+def is_context_window_too_small(json) -> bool:
+    if "output" in json:
+        return False
+    
+    message = json["error"]["message"]
+    return ERROR_PATTERN.search(message) is not None
+
+def get_context_window_required(error_json) -> int:
+    try:
+        message = error_json["error"]["message"]
+    except (KeyError, TypeError):
+        return None
+
+    match = ERROR_PATTERN.search(message)
+
+    return int(match.group("n_keep"))
 
 def is_model_downloaded() -> bool:
     model_key = config_lms["model_key"]
@@ -29,7 +68,6 @@ def is_model_downloaded() -> bool:
     return False
 
 def download_model():
-    ip = config_lms["server_ip"]
     url = f"http://{ip}/api/v1/models/download"
     body = {
         "model": config_lms["model"],
@@ -68,3 +106,31 @@ def is_download_completed(job_id: str) -> bool:
             return True
         case "failed" | "paused":
             raise Exception(res)
+        
+def load_model(context_length: int | None = None):
+    url = f"http://{ip}/api/v1/models/load"
+
+    body = {
+        "model": config_lms["model_key"],
+        "offload_kv_cache_to_gpu": config_lms["offload_gpu"],
+        "flash_attention": True,
+    }
+
+    if context_length is not None:
+        body["context_length"] = context_length
+
+    requests.post(url, json=body)
+
+def save_response(res):
+    folder_name = "llm_response"
+    os.makedirs(folder_name, exist_ok=True)
+    llm_response_path = f"{folder_name}/{datetime.datetime.now()}.md"
+    with open(llm_response_path, "w", encoding="utf-8") as f:
+        f.write(str(res["output"][0]["content"]))
+
+    print(Fore.BLUE + f"LLM response has been saved here : " + Style.RESET_ALL + llm_response_path)
+
+def unload_all_models():
+    models = lms.list_loaded_models()
+    for model in models:
+        model.unload()

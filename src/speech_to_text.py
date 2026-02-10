@@ -8,12 +8,12 @@ from typing import List
 config = config.load_config()
 MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
 
-def transcribe_audio_to_txt(audio_path: str, language: str = "fr", keep_audio: bool = False) -> str:
+def transcribe_audio_to_txt(audio_path: str, language: str = "fr", delete_audio_file: bool = True) -> str:
     device = "cuda"
     repo_id = "mistralai/Voxtral-Mini-3B-2507"
     TARGET_SAMPLE_RATE = 16000
 
-    audio_chunks_paths = split_audio(audio_path, keep_audio)
+    audio_chunks_paths = split_audio(audio_path, delete_audio_file)
 
     processor = AutoProcessor.from_pretrained(repo_id)
     model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
@@ -39,7 +39,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr", keep_audio: b
     return output_path
 
 @time_method.timed_decorator("split_audio")
-def split_audio(audio_path: str, keep_audio: bool) -> List[str]:
+def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
     MIN_SILENCE_LEN = 700  # ms
     SILENCE_THRESH = -40  # dBFS
     KEEP_SILENCE = 800  # ms
@@ -62,7 +62,7 @@ def split_audio(audio_path: str, keep_audio: bool) -> List[str]:
     merged_chunks = merge_too_small_chunks(split_chunks)
     print_chunks_info(merged_chunks, f"Merging too small chunks, now there is : {len(merged_chunks)} chunks")
 
-    if not keep_audio:
+    if delete_audio_file:
         os.remove(audio_path)
 
     return save_chunks_as_wav(merged_chunks, audio_path)

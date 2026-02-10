@@ -8,3 +8,4 @@ lm_studio:
   model: "bartowski/mistralai_Ministral-3-14B-Instruct-2512-GGUF"
   model_variant: "Q5_K_M"
   model_key: "mistralai_ministral-3-14b-instruct-2512"
+  offload_gpu: true
