@@ -13,15 +13,20 @@ temperature = 0.7
 max_output_tokens = 200
 
 @time_method.timed_decorator("main.py")
-def main():    
-    filepath = yt_audio_downloader.download_audio(yt_path)
+def main():
+    (audio_path, informations) = yt_audio_downloader.download_audio(yt_path)
 
-    transcript_path = speech_to_text.transcribe_audio_to_txt(filepath, language, delete_audio_file=True)
+    transcript_path = speech_to_text.transcribe_audio_to_txt(audio_path, language, delete_audio_file=True)
 
     bionic_reading.write(transcript_path)
 
     content = open(transcript_path, "r").readlines()
-    chat = prompt + f"Transcript of the youtube video: {content}"
+
+    chat = f"<ROLE> You are an assistant that analyzes YouTube videos. </ROLE>"
+    chat += f"<TASK> {prompt} </TASK>"
+    chat += f"<BEGIN_GENERAL_INFORMATION> {informations} </END_GENERAL_INFORMATION>"
+    chat += f"<BEGIN_TRANSCRIPT> {content} </END_TRANSCRIPT>"
+
     res = lm_studio.chat(chat, temperature, max_output_tokens)
 
     print(Fore.GREEN + "LLM response :")
