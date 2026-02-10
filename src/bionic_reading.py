@@ -7,7 +7,7 @@ def write(path: str):
 
     file_name_with_extension = os.path.basename(path)
     file_name, _ = os.path.splitext(file_name_with_extension)
-    folder_name = "bionic_reading"
+    folder_name = "./data/bionic_reading"
     os.makedirs(folder_name, exist_ok=True)
     file_destination_path = f"{folder_name}/{file_name}.md"
     with open(file_destination_path, "w", encoding="utf-8") as f:

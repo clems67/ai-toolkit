@@ -10,11 +10,6 @@ wheels/
 .idea
 .vscode
 
-audios
-audio_chunks
-transcriptions
-models
-bionic_reading
-llm_response
+data
 
 config.local.yaml

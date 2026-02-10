@@ -44,7 +44,7 @@ def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
     SILENCE_THRESH = -40  # dBFS
     KEEP_SILENCE = 800  # ms
 
-    OUTPUT_DIR = "../audio_chunks"
+    OUTPUT_DIR = "./data/audio_chunks"
     audio = AudioSegment.from_file(audio_path)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -104,7 +104,7 @@ def merge_too_small_chunks(result):
 def save_chunks_as_wav(chunks, original_file_name:str) -> List[str]:
     file_name_with_extension = os.path.basename(original_file_name)
     file_name, _ = os.path.splitext(file_name_with_extension)
-    path = f"audio_chunks/{file_name}"
+    path = f"./data/audio_chunks/{file_name}"
     os.makedirs(path, exist_ok=True)
 
     paths_to_return = []
@@ -127,10 +127,11 @@ def print_chunks_info(raw_chunks, text):
         print(f"Writing chunk of length {minutes} min {remaining_seconds} sec to file")
 
 def save_transcription(audio_path, decoded_outputs) -> str:
-    os.makedirs("./transcriptions", exist_ok=True)
+    transcriptions_path = "./data/transcriptions"
+    os.makedirs(transcriptions_path, exist_ok=True)
 
     audio_filename = os.path.splitext(os.path.basename(audio_path))[0]
-    output_path = os.path.join("./transcriptions", f"{audio_filename}.txt")
+    output_path = os.path.join(transcriptions_path, f"{audio_filename}.txt")
 
     with open(output_path, "a", encoding="utf-8") as f:
         for decoded_output in decoded_outputs:

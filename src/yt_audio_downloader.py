@@ -5,7 +5,7 @@ import time_method
 def download_audio(url: str) -> str:
     options = {
         "format": "bestaudio/best",
-        "outtmpl": "audios/%(title)s.%(ext)s",
+        "outtmpl": "./data/audios/%(title)s.%(ext)s",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",

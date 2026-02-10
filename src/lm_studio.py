@@ -122,7 +122,7 @@ def load_model(context_length: int | None = None):
     requests.post(url, json=body)
 
 def save_response(res):
-    folder_name = "llm_response"
+    folder_name = "./data/llm_response"
     os.makedirs(folder_name, exist_ok=True)
     llm_response_path = f"{folder_name}/{datetime.datetime.now()}.md"
     with open(llm_response_path, "w", encoding="utf-8") as f:
