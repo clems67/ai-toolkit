@@ -4,9 +4,13 @@ import datetime, os, json, re, time_method
 from colorama import Fore, Style
 from typing import Optional, Dict, Any
 
-config_lms = config.load_config()["lm_studio"]
-ip = config_lms["server_api_host"]
+config = config.load_config()["lm_studio"]
+
+ip = config["server_api_host"]
 lms.configure_default_client(ip)
+
+choosen_config = config["config_choosen"]
+config_lms = config[choosen_config]
 
 @time_method.timed_decorator("LLM question")
 def chat(content: str, temperature : int = 0.7, max_tokens: int = 1000) -> str:

@@ -4,8 +4,17 @@ speech_to_text:
   details_log: false
 
 lm_studio:
+  config_choosen: 2
   server_api_host: "127.0.0.1:1234"
-  model: "bartowski/mistralai_Ministral-3-14B-Instruct-2512-GGUF"
-  model_variant: "Q5_K_M"
-  model_key: "mistralai_ministral-3-14b-instruct-2512"
-  offload_gpu: true
+
+  1:
+    model: "bartowski/mistralai_Ministral-3-14B-Instruct-2512-GGUF"
+    model_variant: "Q5_K_M"
+    model_key: "mistralai_ministral-3-14b-instruct-2512"
+    offload_gpu: true
+  
+  2:
+    model: "bartowski/Ministral-8B-Instruct-2410-GGUF"
+    model_variant: "Q6_K_L"
+    model_key: "ministral-8b-instruct-2410"
+    offload_gpu: true
