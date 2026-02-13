@@ -19,7 +19,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr", delete_audio_
     model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
 
     with time_method.timed("transcribe_audio_to_txt"):
-        for audio_chunk_path in audio_chunks_paths:
+        for i, audio_chunk_path in enumerate(audio_chunks_paths):
             audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
 
             inputs = processor.apply_transcription_request(language=language, audio=audio, format=["wav"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
@@ -33,6 +33,8 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr", delete_audio_
             #clear
             del audio, inputs, outputs
             torch.cuda.empty_cache()
+
+            print(f"progress: {i} / {len(audio_chunks_paths)} - {int(i / len(audio_chunks_paths) * 100)}%")
 
     python_tools.delete_folder(os.path.dirname(audio_chunks_paths[0]))
 
