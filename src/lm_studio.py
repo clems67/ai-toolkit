@@ -9,11 +9,11 @@ config = config.load_config()["lm_studio"]
 ip = config["server_api_host"]
 lms.configure_default_client(ip)
 
-choosen_config = config["config_choosen"]
-config_lms = config[choosen_config]
+chosen_config = config["config_chosen"]
+config_lms = config[chosen_config]
 
 @time_method.timed_decorator("LLM question")
-def chat(content: str, temperature : int = 0.7, max_tokens: int = 1000) -> str:
+def chat(content: str, temperature : float = 0.7, max_tokens: int = 1000) -> str:
     if not is_model_downloaded():
         download_model() #{'error': {'type': 'not_implemented', 'message': 'Specifying quantizations for downloading models with LM Studio Model Catalog identifiers is coming soon",'}}
     
@@ -28,12 +28,15 @@ def chat(content: str, temperature : int = 0.7, max_tokens: int = 1000) -> str:
         load_model(context_window_int)
         res = execute_chat_request(content, temperature, max_tokens)
 
+    if "error" in res:
+        raise Exception(res["error"])
+
     save_response(res)
 
     unload_all_models()
     return res
 
-def execute_chat_request(content: str, temperature : int = 0.7, max_tokens: int = 1000) -> str:
+def execute_chat_request(content: str, temperature : float = 0.7, max_tokens: int = 1000) -> str:
     url = f"http://{ip}/api/v1/chat"
     body = {
         "model": config_lms["model"],
