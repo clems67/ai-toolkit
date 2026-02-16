@@ -1,9 +1,11 @@
-import bionic_writer, os
+import bionic_writer, os, json
 from colorama import Fore, Style
 
 def write(path: str):
     content = open(path, "r").read()
-    bionic_md = bionic_writer.write(content, affix="**", postfix="**")
+    json_data = json.loads(content)
+    merged_text = " ".join(item["text"] for item in json_data["transcription"])
+    bionic_md = bionic_writer.write(merged_text, affix="**", postfix="**")
 
     file_name_with_extension = os.path.basename(path)
     file_name, _ = os.path.splitext(file_name_with_extension)

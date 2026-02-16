@@ -1,6 +1,6 @@
 # you can override this default config file with the untracked config.local.yaml
 speech_to_text:
-  max_chunk_length_minutes: 4
+  max_chunk_length_minutes: 5
   details_log: false
 
 lm_studio:

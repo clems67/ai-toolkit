@@ -36,7 +36,7 @@ def transcribe_audio_to_txt(audio_path: str, info_path:str, language: str = "fr"
             del audio, inputs, outputs
             torch.cuda.empty_cache()
 
-            print(f"progress: {i} / {len(audio_chunks_paths)} - {int(i / len(audio_chunks_paths) * 100)}%")
+            print(f"progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
 
     save_transcription(info_path, audio_chunks_lengths, final_outputs)
     python_tools.delete_folder(os.path.dirname(audio_chunks_paths[0]))
