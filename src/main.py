@@ -14,9 +14,9 @@ max_output_tokens = 200
 
 @time_method.timed_decorator("main.py")
 def main():
-    (audio_path, informations) = yt_audio_downloader.download_audio(yt_path)
+    (audio_path, information_path) = yt_audio_downloader.download_audio(yt_path)
 
-    transcript_path = speech_to_text.transcribe_audio_to_txt(audio_path, language, delete_audio_file=True)
+    transcript_path = speech_to_text.transcribe_audio_to_txt(audio_path, information_path, language, delete_audio_file=True)
 
     bionic_reading.write(transcript_path)
 
@@ -24,8 +24,7 @@ def main():
 
     chat = f"<ROLE> You are an assistant that analyzes YouTube videos. </ROLE>"
     chat += f"<TASK> {prompt} </TASK>"
-    chat += f"<BEGIN_GENERAL_INFORMATION> {informations} </END_GENERAL_INFORMATION>"
-    chat += f"<BEGIN_TRANSCRIPT> {content} </END_TRANSCRIPT>"
+    chat += f"<BEGIN_TRANSCRIPT> {information_path} </END_TRANSCRIPT>"
 
     res = lm_studio.chat(chat, temperature, max_output_tokens)
 

@@ -1,23 +1,26 @@
 from transformers import VoxtralForConditionalGeneration, AutoProcessor
 from pydub import AudioSegment, silence
-import torch, librosa, os
+import torch, librosa, os, json
 import config, time_method, python_tools
 from collections import deque
 from typing import List
+from datetime import timedelta
 
 config = config.load_config()
 MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
 
-def transcribe_audio_to_txt(audio_path: str, language: str = "fr", delete_audio_file: bool = True) -> str:
+def transcribe_audio_to_txt(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> str:
     device = "cuda"
     repo_id = "mistralai/Voxtral-Mini-3B-2507"
     TARGET_SAMPLE_RATE = 16000
 
     audio_chunks_paths = split_audio(audio_path, delete_audio_file)
+    audio_chunks_lengths = get_audio_chunks_lengths(audio_chunks_paths)
 
     processor = AutoProcessor.from_pretrained(repo_id)
     model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
 
+    final_outputs = []
     with time_method.timed("transcribe_audio_to_txt"):
         for i, audio_chunk_path in enumerate(audio_chunks_paths):
             audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
@@ -27,8 +30,7 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr", delete_audio_
 
             outputs = model.generate(**inputs, max_new_tokens=5000)
             decoded_outputs = processor.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
-
-            output_path = save_transcription(audio_path, decoded_outputs)
+            final_outputs.append(decoded_outputs[0])
 
             #clear
             del audio, inputs, outputs
@@ -36,9 +38,10 @@ def transcribe_audio_to_txt(audio_path: str, language: str = "fr", delete_audio_
 
             print(f"progress: {i} / {len(audio_chunks_paths)} - {int(i / len(audio_chunks_paths) * 100)}%")
 
+    save_transcription(info_path, audio_chunks_lengths, final_outputs)
     python_tools.delete_folder(os.path.dirname(audio_chunks_paths[0]))
 
-    return output_path
+    return info_path
 
 @time_method.timed_decorator("split_audio")
 def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
@@ -117,25 +120,34 @@ def save_chunks_as_wav(chunks, original_file_name:str) -> List[str]:
 
     return paths_to_return
 
+def get_audio_chunks_lengths(chunks: List[str]) -> List[int]:
+    res = []
+    for chunk in chunks:
+        audio = AudioSegment.from_wav(chunk)
+        res.append(len(audio) / 1000.0)
+    return res
+
 def print_chunks_info(raw_chunks, text):
     if not config['speech_to_text']['details_log']:
         return
 
     print(text)
     for chunk in raw_chunks:
-        seconds = len(chunk) // 1000  # Convert milliseconds to seconds
-        minutes = seconds // 60  # Get the minutes
-        remaining_seconds = seconds % 60  # Get the remaining seconds
-        print(f"Writing chunk of length {minutes} min {remaining_seconds} sec to file")
+        seconds = len(chunk) // 1000
+        print(f"Writing chunk of duration {str(timedelta(seconds=seconds))} sec to file")
 
-def save_transcription(audio_path, decoded_outputs) -> str:
-    transcriptions_path = "./data/transcriptions"
-    os.makedirs(transcriptions_path, exist_ok=True)
+def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_transcription: List[str]):
+    with open(json_path, "r") as f:
+        data = json.load(f)
+        start_length = 0
+        for i, chunk_length in enumerate(audio_chunks_lengths):
+            to_insert = {
+                "start": str(timedelta(seconds=int(start_length))),
+                "end": str(timedelta(seconds=int(start_length + chunk_length))),
+                "text": str_transcription[i]
+            }
+            data.setdefault("transcription", []).append(to_insert)
+            start_length += chunk_length
 
-    audio_filename = os.path.splitext(os.path.basename(audio_path))[0]
-    output_path = os.path.join(transcriptions_path, f"{audio_filename}.txt")
-
-    with open(output_path, "a", encoding="utf-8") as f:
-        for decoded_output in decoded_outputs:
-            f.write(decoded_output.strip())
-    return output_path
+    with open(json_path, 'w') as file:
+        json.dump(data, file, indent=4)
