@@ -19,15 +19,16 @@ def download_audio(url: str) -> (str, str):
         ydl.download([url])
 
         info = ydl.extract_info(url, download=True)
-        keys_to_keep = ["title", "fulltitle", "description", "duration", "duration_string", "categories", "tags", "chapters", "channel"]
+        keys_to_keep = ["title", "fulltitle", "description", "duration_string", "categories", "tags", "chapters", "channel"]
         filtered_data = {key: info[key] for key in keys_to_keep if key in info}
+        cleaned_data = {k: v for k, v in filtered_data.items() if v is not None}
 
         folder_name = "./data/transcriptions"
         os.makedirs(folder_name, exist_ok=True)
-        title = str(filtered_data["title"])
+        title = str(cleaned_data["title"])
         json_path = f"{folder_name}/{title}.json"
         with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(filtered_data, f, ensure_ascii=False, indent=4)
+            json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
 
         audio_path = str(info["requested_downloads"][0]["filepath"])
 
