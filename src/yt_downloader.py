@@ -23,16 +23,32 @@ def download_audio(url: str) -> (str, str):
         filtered_data = {key: info[key] for key in keys_to_keep if key in info}
         cleaned_data = {k: v for k, v in filtered_data.items() if v is not None}
 
-        folder_name = "./data/transcriptions"
-        os.makedirs(folder_name, exist_ok=True)
-
-        title = str(cleaned_data["title"])
-        clean_file_name = python_tools.clean_file_name(title)
-        json_path = f"{folder_name}/{clean_file_name}.json"
-        
-        with open(json_path, 'w') as f:
-            json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
+        json_path = extract_and_save_info_data(cleaned_data)
 
         audio_path = str(info["requested_downloads"][0]["filepath"])
 
     return (audio_path, json_path)
+
+def extract_and_save_info_data(cleaned_data):
+    folder_name = "./data/transcriptions"
+    os.makedirs(folder_name, exist_ok=True)
+
+    title = str(cleaned_data["title"])
+    clean_file_name = python_tools.clean_file_name(title)
+    json_path = f"{folder_name}/{clean_file_name}.json"
+        
+    with open(json_path, 'w') as f:
+        json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
+    return json_path
+
+def download_subtitles(url: str):
+    ydl_opts = {
+        "writesubtitles": True,
+        "writeautomaticsub": True,
+        "subtitleslangs": ["fr"],
+        "skip_download": True,
+        "subtitlesformat": "best",
+        "outtmpl": "./data/subtitles/%(title)s.%(ext)s"
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])

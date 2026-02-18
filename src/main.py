@@ -1,4 +1,4 @@
-import yt_audio_downloader, speech_to_text, config, time_method, bionic_reading, lm_studio
+import yt_downloader, speech_to_text, config, time_method, bionic_reading, lm_studio
 from colorama import Fore, Style
 
 config = config.load_config()
@@ -14,7 +14,7 @@ max_output_tokens = 200
 
 @time_method.timed_decorator("main.py")
 def main():
-    (audio_path, information_path) = yt_audio_downloader.download_audio(yt_path)
+    (audio_path, information_path) = yt_downloader.download_audio(yt_path)
 
     transcript_path = speech_to_text.transcribe_audio_to_txt(audio_path, information_path, language, delete_audio_file=True)
 
