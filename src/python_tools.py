@@ -1,4 +1,4 @@
-import shutil, os
+import shutil, os, re
 from colorama import Fore, Style
 
 def delete_folder(folder_path):
@@ -15,3 +15,6 @@ def delete_folder(folder_path):
     else:
         print(Fore.RED + f"Folder '{folder_path}' does not exist.")
         print(Style.RESET_ALL)
+
+def clean_file_name(file_name: str) -> str:
+    return re.sub(r'[<>:"/\\|?*]', '-', file_name)

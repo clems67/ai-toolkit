@@ -24,7 +24,7 @@ def main():
 
     chat = f"<ROLE> You are an assistant that analyzes YouTube videos. </ROLE>"
     chat += f"<TASK> {prompt} </TASK>"
-    chat += f"<BEGIN_TRANSCRIPT> {information_path} </END_TRANSCRIPT>"
+    chat += f"<BEGIN_TRANSCRIPT> {content} </END_TRANSCRIPT>"
 
     res = lm_studio.chat(chat, temperature, max_output_tokens)
 

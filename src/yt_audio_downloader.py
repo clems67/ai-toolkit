@@ -1,5 +1,5 @@
 from yt_dlp import YoutubeDL
-import time_method, os
+import time_method, os, python_tools
 import json
 
 @time_method.timed_decorator("download_audio")
@@ -25,9 +25,12 @@ def download_audio(url: str) -> (str, str):
 
         folder_name = "./data/transcriptions"
         os.makedirs(folder_name, exist_ok=True)
+
         title = str(cleaned_data["title"])
-        json_path = f"{folder_name}/{title}.json"
-        with open(json_path, "w", encoding="utf-8") as f:
+        clean_file_name = python_tools.clean_file_name(title)
+        json_path = f"{folder_name}/{clean_file_name}.json"
+        
+        with open(json_path, 'w') as f:
             json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
 
         audio_path = str(info["requested_downloads"][0]["filepath"])

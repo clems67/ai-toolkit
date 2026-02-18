@@ -151,3 +151,10 @@ def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_tran
 
     with open(json_path, 'w') as file:
         json.dump(data, file, indent=4)
+
+    path = f"./data/normal_reading"
+    os.makedirs(path, exist_ok=True)
+    clean_file_name = python_tools.clean_file_name(data["title"])
+    file_name = f"{path}/{clean_file_name}.txt"
+    with open(file_name, 'w', encoding="utf-8") as f:
+        f.write(' '.join(str_transcription))
