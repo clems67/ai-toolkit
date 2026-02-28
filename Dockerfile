@@ -21,6 +21,8 @@ ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 RUN uv sync --frozen
 ENV PATH="/app/.venv/bin:$PATH"
 
-COPY . /app
+#only necessary in a prod environment
+#COPY . /app
+
 EXPOSE 8000
 CMD ["python", "src/main.py"]
