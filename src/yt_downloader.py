@@ -1,12 +1,13 @@
 from yt_dlp import YoutubeDL
-import time_method, os, python_tools
-import json
+import time_method, python_tools
+import json, os
 
 @time_method.timed_decorator("download_audio")
 def download_audio(url: str) -> (str, str):
+    url = url.split('&')[0] #get a clean url without any parameter
     options = {
         "format": "bestaudio/best",
-        "outtmpl": "data/audios/%(title)s.%(ext)s",
+        "outtmpl": "data_process/audios/%(title)s.%(ext)s",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",

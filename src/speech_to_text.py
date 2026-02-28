@@ -49,9 +49,7 @@ def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
     SILENCE_THRESH = -40  # dBFS
     KEEP_SILENCE = 800  # ms
 
-    OUTPUT_DIR = "./data/audio_chunks"
     audio = AudioSegment.from_file(audio_path)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     initial_chunks = silence.split_on_silence(
         audio,
@@ -109,7 +107,7 @@ def merge_too_small_chunks(result):
 def save_chunks_as_wav(chunks, original_file_name:str) -> List[str]:
     file_name_with_extension = os.path.basename(original_file_name)
     file_name, _ = os.path.splitext(file_name_with_extension)
-    path = f"data/audio_chunks/{file_name}"
+    path = f"data_process/audio_chunks/{file_name}"
     os.makedirs(path, exist_ok=True)
 
     paths_to_return = []
