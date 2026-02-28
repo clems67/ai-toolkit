@@ -147,8 +147,8 @@ def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_tran
             data.setdefault("transcription", []).append(to_insert)
             start_length += chunk_length
 
-    with open(json_path, 'w') as file:
-        json.dump(data, file, indent=4)
+    with open(json_path, 'w', encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=4)
 
     path = f"data/normal_reading"
     os.makedirs(path, exist_ok=True)
