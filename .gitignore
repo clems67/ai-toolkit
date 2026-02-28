@@ -13,3 +13,4 @@ wheels/
 data
 
 config.local.yaml
+.env

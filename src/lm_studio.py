@@ -131,9 +131,10 @@ def load_model(context_length: int | None = None):
     requests.post(url, json=body)
 
 def save_response(res):
-    folder_name = "./data/llm_response"
+    folder_name = "data/llm_response"
     os.makedirs(folder_name, exist_ok=True)
-    llm_response_path = f"{folder_name}/{datetime.datetime.now()}.md"
+    ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    llm_response_path = f"{folder_name}/{ts}.md"
     with open(llm_response_path, "w", encoding="utf-8") as f:
         f.write(str(res["output"][0]["content"]))
 

@@ -109,7 +109,7 @@ def merge_too_small_chunks(result):
 def save_chunks_as_wav(chunks, original_file_name:str) -> List[str]:
     file_name_with_extension = os.path.basename(original_file_name)
     file_name, _ = os.path.splitext(file_name_with_extension)
-    path = f"./data/audio_chunks/{file_name}"
+    path = f"data/audio_chunks/{file_name}"
     os.makedirs(path, exist_ok=True)
 
     paths_to_return = []
@@ -152,7 +152,7 @@ def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_tran
     with open(json_path, 'w') as file:
         json.dump(data, file, indent=4)
 
-    path = f"./data/normal_reading"
+    path = f"data/normal_reading"
     os.makedirs(path, exist_ok=True)
     clean_file_name = python_tools.clean_file_name(data["title"])
     file_name = f"{path}/{clean_file_name}.txt"

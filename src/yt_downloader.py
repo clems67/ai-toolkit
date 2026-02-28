@@ -6,7 +6,7 @@ import json
 def download_audio(url: str) -> (str, str):
     options = {
         "format": "bestaudio/best",
-        "outtmpl": "./data/audios/%(title)s.%(ext)s",
+        "outtmpl": "data/audios/%(title)s.%(ext)s",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -30,7 +30,7 @@ def download_audio(url: str) -> (str, str):
     return (audio_path, json_path)
 
 def extract_and_save_info_data(cleaned_data):
-    folder_name = "./data/transcriptions"
+    folder_name = "data/transcriptions"
     os.makedirs(folder_name, exist_ok=True)
 
     title = str(cleaned_data["title"])
