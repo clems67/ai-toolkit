@@ -38,7 +38,7 @@ def extract_and_save_info_data(cleaned_data):
     clean_file_name = python_tools.clean_file_name(title)
     json_path = f"{folder_name}/{clean_file_name}.json"
         
-    with open(json_path, 'w') as f:
+    with open(json_path, 'w', encoding="utf-8") as f:
         json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
     return json_path
 

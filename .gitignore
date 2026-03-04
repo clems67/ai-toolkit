@@ -11,6 +11,7 @@ wheels/
 .vscode
 
 data
+data_process
 
 config.local.yaml
 .env

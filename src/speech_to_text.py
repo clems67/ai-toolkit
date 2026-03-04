@@ -5,12 +5,16 @@ import config, time_method, python_tools
 from collections import deque
 from typing import List
 from datetime import timedelta
+from colorama import Fore, Style
 
 config = config.load_config()
 MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
 
 def transcribe_audio_to_txt(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> str:
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cpu":
+        print(Fore.YELLOW + "WARNING, running on cpu")
+        print(Style.RESET_ALL)
     repo_id = "mistralai/Voxtral-Mini-3B-2507"
     TARGET_SAMPLE_RATE = 16000
 
@@ -18,7 +22,7 @@ def transcribe_audio_to_txt(audio_path: str, info_path:str, language: str = "fr"
     audio_chunks_lengths = get_audio_chunks_lengths(audio_chunks_paths)
 
     processor = AutoProcessor.from_pretrained(repo_id)
-    model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map=device)
+    model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map="auto").to(device)
 
     final_outputs = []
     with time_method.timed("transcribe_audio_to_txt"):
@@ -135,7 +139,7 @@ def print_chunks_info(raw_chunks, text):
         print(f"Writing chunk of duration {str(timedelta(seconds=seconds))} sec to file")
 
 def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_transcription: List[str]):
-    with open(json_path, "r") as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         start_length = 0
         for i, chunk_length in enumerate(audio_chunks_lengths):
