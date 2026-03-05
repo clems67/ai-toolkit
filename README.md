@@ -22,7 +22,7 @@ LM Studio allows you to chat with a local LLM.
 ### C) If you want to use another model
 1. Go to `config.local.yaml` and add a 3rd config like in `config.yaml`
 2. Update `model` and the quantization `model_variant`
-3. Where to find `model_key` => Go to `My Models` tab in left panel => Click on the 3 dots of you model => Copy Default Identifier
+3. Where to find `model_key` : Go to `My Models` tab in left panel => Click on the 3 dots of you model => `Copy Default Identifier`
 4. Change `config_chosen` to 3 in `config.local.yaml`
 
 ## Windows
