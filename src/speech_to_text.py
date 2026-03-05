@@ -6,7 +6,7 @@ from typing import List
 from datetime import timedelta
 from colorama import Fore, Style
 
-def transcribe_audio_to_txt(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> str:
+def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> str:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
         print(Fore.YELLOW + "WARNING, running on cpu")

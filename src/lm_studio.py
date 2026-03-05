@@ -1,12 +1,13 @@
 import lmstudio as lms
 import config, requests, time
-import datetime, os, json, re, time_method
+import datetime, os, re, time_method
 from colorama import Fore, Style
-from typing import Optional, Dict, Any
 
 config = config.load_config()["lm_studio"]
 
 ip = config["server_api_host"]
+remove_http = re.search(r"https?://(.+)", ip)
+ip = remove_http.group(1)
 lms.configure_default_client(ip)
 
 chosen_config = config["config_chosen"]
