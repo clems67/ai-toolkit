@@ -1,16 +1,29 @@
 ## Setup LM Sudio
 LM Studio allows you to chat with a local LLM.
 
+### A) Setup server
 1. Install [LM Studio](https://lmstudio.ai/)
-2. Go to the Developer tab in the left panel
+2. Go to the `Developer` tab in the left panel
 3. Start the server
 4. Server Settings => Serve on Local Network
 5. Copy the server URL
-6. Paste it in the `config.local.yaml` file under "lm_studio" : "server_api_host". Use the same structure as config.yaml
+6. Paste it in the `config.local.yaml` file under `lm_studio` : `server_api_host`. Use the same structure as config.yaml
 
 ![alt text](assets/Setup_LM_Studio_server.png)
 
 ![alt text](assets/config.local.yaml.png)
+
+### B) Install model
+1. Go to `Model Search` tab in left panel
+2. Search for `bartowski/Ministral-8B-Instruct-2410-GGUF`
+3. Select the `Q6_K_L` quantization
+4. Download the model
+
+### C) If you want to use another model
+1. Go to `config.local.yaml` and add a 3rd config like in `config.yaml`
+2. Update `model` and the quantization `model_variant`
+3. Where to find `model_key` => Go to `My Models` tab in left panel => Click on the 3 dots of you model => Copy Default Identifier
+4. Change `config_chosen` to 3 in `config.local.yaml`
 
 ## Windows
 Pros : takes 5 times less RAM than Docker.
