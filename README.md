@@ -1,3 +1,8 @@
+## Presentation
+This repo goal is to give AI tools to work locally.
+<br>For now the main feature is to download a Youtube video in wav format, generate a clean transcription with [Voxtral-mini](https://huggingface.co/mistralai/Voxtral-Mini-3B-2507), and use a local LLM to ask questions about this transcript.
+<br>All data generated (transcriptions, llm chat ...) are saved in `data` folder.
+
 ## Setup LM Sudio
 LM Studio allows you to chat with a local LLM.
 
