@@ -21,4 +21,4 @@ services:
               count: all
               capabilities: [gpu]
 
-    command: ["python", "src/main.py"]
+    command: ["python", "-u", "src/main.py"]

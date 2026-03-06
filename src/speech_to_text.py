@@ -1,6 +1,6 @@
 from transformers import VoxtralForConditionalGeneration, AutoProcessor
 from pydub import AudioSegment
-import torch, librosa, os, json
+import torch, librosa, os, json, time
 import time_method, python_tools, split_audio
 from typing import List
 from datetime import timedelta
@@ -36,7 +36,7 @@ def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delet
             del audio, inputs, outputs
             torch.cuda.empty_cache()
 
-            print(f"progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
+            print(f"{time.strftime('%H:%M:%S')}: progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
 
     save_transcription(info_path, audio_chunks_lengths, final_outputs)
     python_tools.delete_folder(os.path.dirname(audio_chunks_paths[0]))

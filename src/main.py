@@ -16,7 +16,7 @@ max_output_tokens = 200
 def main():
     (audio_path, information_path) = yt_downloader.download_audio(yt_path)
 
-    transcript_path = speech_to_text.transcribe_audio_to_txt(audio_path, information_path, language, delete_audio_file=True)
+    transcript_path = speech_to_text.transcribe_audio(audio_path, information_path, language, delete_audio_file=True)
 
     bionic_reading.write(transcript_path)
 
