@@ -14,12 +14,11 @@ chosen_config = config["config_chosen"]
 config_lms = config[chosen_config]
 
 @time_method.timed_decorator("LLM question")
-def chat(content: str, temperature : float = 0.7, max_tokens: int = 1000) -> str:
+def chat(content: str, temperature : float = 0.7, max_tokens: int = 1000, unload_when_finished = True) -> str:
     if not is_model_downloaded():
         download_model() #{'error': {'type': 'not_implemented', 'message': 'Specifying quantizations for downloading models with LM Studio Model Catalog identifiers is coming soon",'}}
-    
-    unload_all_models()
-    load_model()
+
+    smart_model_loading()
 
     res = execute_chat_request(content, temperature, max_tokens)
 
@@ -34,8 +33,39 @@ def chat(content: str, temperature : float = 0.7, max_tokens: int = 1000) -> str
 
     save_response(res)
 
-    unload_all_models()
+    if unload_when_finished:
+        unload_all_models()
+
     return res
+
+def smart_model_loading():
+    """
+    Manages active models by keeping only one instance that matches the
+    configured model key and unloading all others to optimize resources.
+
+    If the target model is not currently loaded, it triggers a new load.
+
+    :return: None
+    """
+    models_match = []
+    models_to_unload = []
+
+    models = lms.list_loaded_models()
+    identifiers = [model_id.identifier for model_id in models]
+    for m in identifiers:
+        match = re.search(r"^([a-z0-9\-]+)(:\d+)?$", m)
+        if match.group(1) == config_lms["model_key"]:
+            models_match.append(m)
+        else:
+            models_to_unload.append(m)
+
+    model_to_keep = models_match[0] if models_match else None
+    models_to_unload.extend(models_match[1:])
+
+    for model in models_to_unload:
+        unload_model_by_id(model)
+    if model_to_keep is None:
+        load_model()
 
 def execute_chat_request(content: str, temperature : float = 0.7, max_tokens: int = 1000) -> str:
     url = f"http://{ip}/api/v1/chat"
@@ -144,3 +174,11 @@ def unload_all_models():
     models = lms.list_loaded_models()
     for model in models:
         model.unload()
+
+def unload_model_by_id(instance_id: str):
+    url = f"http://{ip}/api/v1/models/unload"
+
+    body = {
+        "instance_id": instance_id
+    }
+    return requests.post(url, json=body).json()
