@@ -17,4 +17,23 @@ def delete_folder(folder_path):
         print(Style.RESET_ALL)
 
 def clean_file_name(file_name: str) -> str:
-    return re.sub(r'[<>:"/\\|?*]', '-', file_name)
+    # Replace invalid characters with "-"
+    name = re.sub(r'[<>:"/\\|?*]', '-', file_name)
+
+    # Collapse multiple dashes
+    name = re.sub(r'-+', '-', name)
+
+    # Trim spaces and dots (Windows restriction)
+    name = name.strip(' .')
+
+    # Avoid reserved Windows names
+    reserved = {
+        "CON","PRN","AUX","NUL",
+        *(f"COM{i}" for i in range(1,10)),
+        *(f"LPT{i}" for i in range(1,10)),
+    }
+    if name.upper() in reserved:
+        name = f"_{name}"
+
+    # Limit length (safe margin)
+    return name[:100] or "file"

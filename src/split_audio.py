@@ -1,9 +1,11 @@
 from pydub import AudioSegment, silence
 import os
-import config, time_method
+import config, time_method, python_tools
 from collections import deque
 from typing import List
 from datetime import timedelta
+from pathlib import Path
+from python_tools import clean_file_name
 
 config = config.load_config()
 MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
@@ -70,14 +72,14 @@ def merge_too_small_chunks(result):
     return final_result
 
 def save_chunks_as_wav(chunks, original_file_name:str) -> List[str]:
-    file_name_with_extension = os.path.basename(original_file_name)
-    file_name, _ = os.path.splitext(file_name_with_extension)
-    path = f"data_process/audio_chunks/{file_name}"
+    file_name = Path(original_file_name).stem
+    file_name = clean_file_name(file_name)
+    path = Path("data_process") / "audio_chunks" / file_name
     os.makedirs(path, exist_ok=True)
 
     paths_to_return = []
     for i, chunk in enumerate(chunks):
-        output_path = f"{path}/chunk_{i}.wav"
+        output_path = Path(path) / f"chunk_{i}.wav"
         chunk.export(output_path, format="wav")
         paths_to_return.append(output_path)
 
