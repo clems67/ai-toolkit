@@ -15,3 +15,5 @@ data_process
 
 config.local.yaml
 .env
+
+src/test.py

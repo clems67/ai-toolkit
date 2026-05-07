@@ -6,7 +6,7 @@ from typing import List
 from datetime import timedelta
 from colorama import Fore, Style
 
-def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> List[dict]:
+def transcribe_audio(audio_path: str, language: str = "fr", delete_audio_file: bool = True, max_chunk_length_min: int = 0) -> List[dict]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
         print(Fore.YELLOW + "WARNING, running on cpu")
@@ -14,7 +14,7 @@ def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delet
     repo_id = "mistralai/Voxtral-Mini-3B-2507"
     TARGET_SAMPLE_RATE = 16000
 
-    audio_chunks_paths = split_audio.split_audio(audio_path, delete_audio_file)
+    audio_chunks_paths = split_audio.split_audio(audio_path, delete_audio_file, max_chunk_length_min)
 
     processor = AutoProcessor.from_pretrained(repo_id)
     model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map="auto").to(device)
@@ -47,12 +47,11 @@ def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delet
 
             print(f"{time.strftime('%H:%M:%S')}: progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
 
-    save_transcription(info_path, transcription)
     python_tools.delete_folder(os.path.dirname(audio_chunks_paths[0]))
 
     return transcription
 
-def save_transcription(json_path: str, transcript: List[str]):
+def save_transcription(json_path: str, transcript: List[dict]):
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         data.setdefault("transcription", transcript)

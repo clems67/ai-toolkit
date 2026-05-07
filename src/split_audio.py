@@ -8,10 +8,10 @@ from pathlib import Path
 from python_tools import clean_file_name
 
 config = config.load_config()
-MAX_CHUNK_LEN_MS = config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
 
 @time_method.timed_decorator("split_audio")
-def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
+def split_audio(audio_path: str, delete_audio_file: bool, max_chunk_length_min: int = 0) -> List[str]:
+    MAX_CHUNK_LEN_MS = max_chunk_length_min if max_chunk_length_min > 0 else config["speech_to_text"]["max_chunk_length_minutes"] * 60 * 1000
     MIN_SILENCE_LEN = 700  # ms
     SILENCE_THRESH = -40  # dBFS
     KEEP_SILENCE = 800  # ms
@@ -26,10 +26,10 @@ def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
     )
     print_chunks_info(initial_chunks, f"Silence detection has split audio into {len(initial_chunks)} chunks")
 
-    split_chunks = split_too_big_chunks(initial_chunks)
+    split_chunks = split_too_big_chunks(initial_chunks, MAX_CHUNK_LEN_MS)
     print_chunks_info(split_chunks, f"Splitting too big chunks, now there is : {len(split_chunks)} chunks")
 
-    merged_chunks = merge_too_small_chunks(split_chunks)
+    merged_chunks = merge_too_small_chunks(split_chunks, MAX_CHUNK_LEN_MS)
     print_chunks_info(merged_chunks, f"Merging too small chunks, now there is : {len(merged_chunks)} chunks")
 
     if delete_audio_file:
@@ -37,15 +37,15 @@ def split_audio(audio_path: str, delete_audio_file: bool) -> List[str]:
 
     return save_chunks_as_wav(merged_chunks, audio_path)
 
-def split_too_big_chunks(initial_chunks):
+def split_too_big_chunks(initial_chunks, max_chunk_length_ms: int):
     to_process = deque(initial_chunks)  # BIG queue that will shrink
     result = deque()  # EMPTY queue that will grow
 
     while to_process:
         chunk = to_process.popleft()
 
-        if len(chunk) > MAX_CHUNK_LEN_MS:
-            nb_divide = len(chunk) // MAX_CHUNK_LEN_MS + 1
+        if len(chunk) > max_chunk_length_ms:
+            nb_divide = len(chunk) // max_chunk_length_ms + 1
             sub_length = len(chunk) // nb_divide
             for i in range(0, len(chunk), sub_length):
                 sub = chunk[i: i + sub_length]
@@ -54,14 +54,14 @@ def split_too_big_chunks(initial_chunks):
             result.append(chunk)
     return result
 
-def merge_too_small_chunks(result):
+def merge_too_small_chunks(result, max_chunk_length_ms: int):
     final_result = deque()
     buffer = AudioSegment.empty()
 
     while result:
         chunk = result.popleft()
 
-        if len(buffer) + len(chunk) < MAX_CHUNK_LEN_MS:
+        if len(buffer) + len(chunk) < max_chunk_length_ms:
             buffer += chunk
         else:
             if len(buffer) > 0:
