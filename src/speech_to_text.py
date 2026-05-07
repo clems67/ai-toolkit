@@ -6,7 +6,7 @@ from typing import List
 from datetime import timedelta
 from colorama import Fore, Style
 
-def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> str:
+def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delete_audio_file: bool = True) -> List[dict]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
         print(Fore.YELLOW + "WARNING, running on cpu")
@@ -15,12 +15,13 @@ def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delet
     TARGET_SAMPLE_RATE = 16000
 
     audio_chunks_paths = split_audio.split_audio(audio_path, delete_audio_file)
-    audio_chunks_lengths = get_audio_chunks_lengths(audio_chunks_paths)
 
     processor = AutoProcessor.from_pretrained(repo_id)
     model = VoxtralForConditionalGeneration.from_pretrained(repo_id, torch_dtype=torch.bfloat16, device_map="auto").to(device)
 
-    final_outputs = []
+    transcription = []
+
+    start_time = 0
     with time_method.timed("transcribe_audio_to_txt"):
         for i, audio_chunk_path in enumerate(audio_chunks_paths):
             audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
@@ -30,38 +31,31 @@ def transcribe_audio(audio_path: str, info_path:str, language: str = "fr", delet
 
             outputs = model.generate(**inputs, max_new_tokens=5000)
             decoded_outputs = processor.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)
-            final_outputs.append(decoded_outputs[0])
 
             #clear
             del audio, inputs, outputs
             torch.cuda.empty_cache()
 
+            audio = AudioSegment.from_wav(audio_chunks_paths[i])
+            end_time = len(audio) / 1000.0
+            transcription.append({
+                "start": str(timedelta(seconds=int(start_time))),
+                "end": str(timedelta(seconds=int(end_time))),
+                "text": decoded_outputs[0]
+            })
+            start_time = end_time
+
             print(f"{time.strftime('%H:%M:%S')}: progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
 
-    save_transcription(info_path, audio_chunks_lengths, final_outputs)
+    save_transcription(info_path, transcription)
     python_tools.delete_folder(os.path.dirname(audio_chunks_paths[0]))
 
-    return info_path
+    return transcription
 
-def get_audio_chunks_lengths(chunks: List[str]) -> List[int]:
-    res = []
-    for chunk in chunks:
-        audio = AudioSegment.from_wav(chunk)
-        res.append(len(audio) / 1000.0)
-    return res
-
-def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_transcription: List[str]):
+def save_transcription(json_path: str, transcript: List[str]):
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-        start_length = 0
-        for i, chunk_length in enumerate(audio_chunks_lengths):
-            to_insert = {
-                "start": str(timedelta(seconds=int(start_length))),
-                "end": str(timedelta(seconds=int(start_length + chunk_length))),
-                "text": str_transcription[i]
-            }
-            data.setdefault("transcription", []).append(to_insert)
-            start_length += chunk_length
+        data.setdefault("transcription", transcript)
 
     with open(json_path, 'w', encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
@@ -71,4 +65,5 @@ def save_transcription(json_path: str, audio_chunks_lengths: List[int], str_tran
     clean_file_name = python_tools.clean_file_name(data["title"])
     file_name = f"{path}/{clean_file_name}.txt"
     with open(file_name, 'w', encoding="utf-8") as f:
-        f.write(' '.join(str_transcription))
+        full_text = ' '.join([segment['text'] for segment in transcript])
+        f.write(full_text)
