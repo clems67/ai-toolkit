@@ -5,8 +5,9 @@ import time_method, python_tools, split_audio
 from typing import List
 from datetime import timedelta
 from colorama import Fore, Style
+from enums import Language
 
-def transcribe_audio(audio_path: str, language: str = "fr", delete_audio_file: bool = True, max_chunk_length_min: int = 0) -> List[dict]:
+def transcribe_audio(audio_path: str, language: Language, delete_audio_file: bool = True, max_chunk_length_min: int = 0) -> List[dict]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
         print(Fore.YELLOW + "WARNING, running on cpu")
@@ -26,7 +27,7 @@ def transcribe_audio(audio_path: str, language: str = "fr", delete_audio_file: b
         for i, audio_chunk_path in enumerate(audio_chunks_paths):
             audio, sampling_rate = librosa.load(audio_chunk_path, sr=TARGET_SAMPLE_RATE)
 
-            inputs = processor.apply_transcription_request(language=language, audio=audio, format=["wav"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
+            inputs = processor.apply_transcription_request(language=language.value, audio=audio, format=["wav"], sampling_rate=TARGET_SAMPLE_RATE, model_id=repo_id)
             inputs = inputs.to(device, dtype=torch.bfloat16)
 
             outputs = model.generate(**inputs, max_new_tokens=5000)

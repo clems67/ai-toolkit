@@ -1,10 +1,11 @@
 import yt_downloader, speech_to_text, config, time_method, bionic_reading, lm_studio
+from enums import Language
 from colorama import Fore, Style
 
 config = config.load_config()
 
 yt_path = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-language = "en"
+language = Language.ENGLISH
 prompt = """
 Explain me why this text is so much important in today's culture.
 Explain briefly in a few sentences (10 maximum).
