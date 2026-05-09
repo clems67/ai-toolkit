@@ -1,5 +1,6 @@
 import shutil, os, re
 from colorama import Fore, Style
+from datetime import datetime, timedelta
 
 def delete_folder(folder_path):
     """
@@ -37,3 +38,16 @@ def clean_file_name(file_name: str) -> str:
 
     # Limit length (safe margin)
     return name[:100] or "file"
+
+def time_str_to_seconds(time_str: str) -> float:
+    try:
+        dt = datetime.strptime(time_str, "%H:%M:%S")
+        return int(dt.strftime("%H")) * 3600 + int(dt.strftime("%M")) * 60 + int(dt.strftime("%S"))
+    except ValueError:
+        raise ValueError("Invalid time format. Expected HH:MM:SS or MM:SS.")
+
+def seconds_to_time_str(seconds: float) -> str:
+    """
+    Converts a time duration in seconds to HH:MM:SS format.
+    """
+    return str(timedelta(seconds=int(seconds)))

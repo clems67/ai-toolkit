@@ -1,7 +1,9 @@
 from faster_whisper import WhisperModel
-import yt_downloader
+from typing import List
+import python_tools
+from speech_to_text_voxtral import save_transcription as save_transcription_voxtral
 
-def main(audio_path: str):
+def transcribe_audio(audio_path: str) -> List[dict]:
 
     model_size = "large-v3-turbo"
 
@@ -11,5 +13,15 @@ def main(audio_path: str):
 
     print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
 
+    result = []
     for segment in segments:
-        print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
+        result.append({
+            "start": python_tools.seconds_to_time_str(segment.start),
+            "end": python_tools.seconds_to_time_str(segment.end),
+            "text": str(segment.text)
+        })
+        
+    return result
+
+def save_transcription(json_path: str, transcript: List[dict]):
+    save_transcription_voxtral(json_path, transcript)
