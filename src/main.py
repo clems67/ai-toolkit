@@ -1,6 +1,7 @@
 import yt_downloader, speech_to_text_voxtral, config, time_method, bionic_reading, lm_studio
 from enums import Language
 from colorama import Fore, Style
+from speech_to_text_voxtral import SpeechToText_Voxtral
 
 config = config.load_config()
 
@@ -17,10 +18,11 @@ max_output_tokens = 200
 def main():
     (audio_path, result_path) = yt_downloader.download_audio(yt_path)
 
-    transcript = speech_to_text_voxtral.transcribe_audio(audio_path, language, delete_audio_file=True)
-    speech_to_text_voxtral.save_transcription(result_path, transcript)
+    stt_voxtral = SpeechToText_Voxtral()
+    transcript = stt_voxtral.transcribe_audio(audio_path, language, delete_audio_file=True)
+    stt_voxtral.save_transcription(result_path)
 
-    bionic_reading.write(result_path)
+    #bionic_reading.write(result_path)
 
     content = open(result_path, "r").readlines()
 
