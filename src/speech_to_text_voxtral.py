@@ -42,14 +42,13 @@ class SpeechToText_Voxtral(SpeechToText):
                 del audio, inputs, outputs
                 torch.cuda.empty_cache()
 
-                audio = AudioSegment.from_wav(audio_chunks_paths[i])
-                end_time = len(audio) / 1000.0
+                duration = librosa.get_duration(path=audio_chunk_path)
                 transcription.append({
                     "start": str(timedelta(seconds=int(start_time))),
-                    "end": str(timedelta(seconds=int(end_time))),
+                    "end": str(timedelta(seconds=int(start_time + duration))),
                     "text": decoded_outputs[0]
                 })
-                start_time = end_time
+                start_time += duration
 
                 print(f"{time.strftime('%H:%M:%S')}: progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
 
