@@ -6,13 +6,13 @@ from typing import List
 from datetime import timedelta
 from colorama import Fore, Style
 from enums import Language
-from speech_to_text import SpeechToText
+from speech_to_text import SpeechToText, Transcription
 
 class SpeechToText_Voxtral(SpeechToText):
     def __init__(self):
         super().__init__()
 
-    def transcribe_audio(self, audio_path: str, language: Language, delete_audio_file: bool = True, max_chunk_length_min: int = 0) -> List[dict]:
+    def transcribe_audio(self, audio_path: str, language: Language, delete_audio_file: bool = True, max_chunk_length_min: int = 0) -> List[Transcription]:
         device = "cuda" if torch.cuda.is_available() else "cpu"
         if device == "cpu":
             print(Fore.YELLOW + "WARNING, running on cpu")
@@ -41,13 +41,15 @@ class SpeechToText_Voxtral(SpeechToText):
                 #clear
                 del audio, inputs, outputs
                 torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
 
-                duration = librosa.get_duration(path=audio_chunk_path)
-                transcription.append({
-                    "start": str(timedelta(seconds=int(start_time))),
-                    "end": str(timedelta(seconds=int(start_time + duration))),
-                    "text": decoded_outputs[0]
-                })
+                duration = int(librosa.get_duration(path=audio_chunk_path))
+                transcript_chunk = Transcription(
+                    start = str(timedelta(seconds=start_time)),
+                    end = str(timedelta(seconds=start_time + duration)),
+                    text = decoded_outputs[0]
+                )
+                transcription.append(transcript_chunk)
                 start_time += duration
 
                 print(f"{time.strftime('%H:%M:%S')}: progress: {i + 1} / {len(audio_chunks_paths)} - {int((i + 1) / len(audio_chunks_paths) * 100)}%")
