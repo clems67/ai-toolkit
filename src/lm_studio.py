@@ -5,11 +5,17 @@ from typing import Optional, Dict, Any
 
 class LmStudio:
     """Main class for interacting with LM Studio API."""
+    ERROR_PATTERN = re.compile(
+        r"Cannot truncate prompt with n_keep \((?P<n_keep>\d+)\) >= n_ctx \((?P<n_ctx>\d+)\)"
+    )
+    content = None
+    input_tokens = None
+    total_output_tokens = None
+    reasoning_output_tokens = None
+    tokens_per_second = None
+    time_to_first_token_seconds = None
 
     def __init__(self):
-        self.ERROR_PATTERN = re.compile(
-            r"Cannot truncate prompt with n_keep \((?P<n_keep>\d+)\) >= n_ctx \((?P<n_ctx>\d+)\)"
-        )
         """Initialize the LM Studio client."""
         self.config = config.load_config()["lm_studio"]
         self.ip = self._clean_ip_address(self.config["server_api_host"])
@@ -31,7 +37,7 @@ class LmStudio:
         temperature: float = 0.7,
         max_tokens: int = 1000,
         unload_when_finished: bool = True
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Send a chat request to LM Studio."""
         if not self.is_model_downloaded():
             self.download_model()
@@ -50,11 +56,12 @@ class LmStudio:
             raise Exception(res["error"])
 
         self.save_response(res)
+        self.extract_stats_info(res)
 
         if unload_when_finished:
             self.unload_all_models()
 
-        return res
+        return self.content
 
     def smart_model_loading(self) -> None:
         """Manages active models by keeping only one instance that matches the configured model key."""
@@ -216,14 +223,14 @@ class LmStudio:
         llm_response_path = f"{folder_name}/{timestamp}"
 
         if "output" in response:  # normal response
-            content = str(response["output"][0]["content"])
+            self.content = str(response["output"][0]["content"])
             with open(f"{llm_response_path}.md", "w", encoding="utf-8") as f:
-                f.write(content)
+                f.write(self.content)
         else:  # structured response
-            content = response["choices"][0]["message"]["content"]
-            parsed_content = json.loads(content)
+            raw_content = response["choices"][0]["message"]["content"]
+            self.content = json.loads(raw_content)
             with open(f"{llm_response_path}.json", 'w', encoding="utf-8") as f:
-                json.dump(parsed_content, f, indent=2)
+                json.dump(self.content, f, indent=2)
 
         print(Fore.BLUE + f"LLM response has been saved here: " +
               Style.RESET_ALL + llm_response_path)
@@ -243,3 +250,11 @@ class LmStudio:
     def token_count(self, text: str) -> int:
         """Count the number of tokens in a given text."""
         return lms.llm().count_tokens(text)
+
+    def extract_stats_info(self, response: Dict[str, Any]):
+        if "stats" in response:
+            self.input_tokens = response["stats"].get("input_tokens")
+            self.total_output_tokens = response["stats"].get("total_output_tokens")
+            self.reasoning_output_tokens= response["stats"].get("reasoning_output_tokens")
+            self.tokens_per_second = response["stats"].get("tokens_per_second")
+            self.time_to_first_token_seconds = response["stats"].get("time_to_first_token_seconds")
