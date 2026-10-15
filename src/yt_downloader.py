@@ -2,6 +2,9 @@ from yt_dlp import YoutubeDL
 import time_method, python_tools
 import json, os
 
+from enums import Language
+
+
 @time_method.timed_decorator("download_audio")
 def download_audio(url: str) -> (str, str):
     url = url.split('&')[0] #get a clean url without any parameter
@@ -53,3 +56,60 @@ def download_subtitles(url: str):
     }
     with YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
+
+
+@time_method.timed_decorator("extract_playlist_info")
+def extract_playlist_info(url: str, language: Language = Language.ENGLISH) -> str:
+    url = url.split('&')[0]  # clean url without extra params
+
+    options = {
+        "extract_flat": True,
+        "skip_download": True,
+        "quiet": True,
+        "extractor_args": {
+            "youtube": {
+                "lang": [language.value]
+            }
+        },
+    }
+
+    with YoutubeDL(options) as ydl:
+        info = ydl.extract_info(url, download=False)
+
+        keys_to_keep = ["title", "id", "uploader", "channel", "playlist_count"]
+        filtered_data = {key: info[key] for key in keys_to_keep if key in info}
+        cleaned_data = {k: v for k, v in filtered_data.items() if v is not None}
+
+        entries = info.get("entries", [])
+        videos = []
+        for entry in entries:
+            if entry is None:
+                continue
+            video_url = entry.get("url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
+            videos.append({
+                "id": entry.get("id"),
+                "title": entry.get("title"),
+                "url": video_url,
+                "duration": entry.get("duration"),
+            })
+
+        cleaned_data["videos"] = videos
+        cleaned_data["video_count"] = len(videos)
+
+        json_path = extract_and_save_playlist_data(cleaned_data)
+
+    return json_path
+
+
+def extract_and_save_playlist_data(cleaned_data):
+    folder_name = "data/playlists"
+    os.makedirs(folder_name, exist_ok=True)
+
+    title = str(cleaned_data.get("title", "unknown_playlist"))
+    clean_file_name = python_tools.clean_file_name(title)
+    json_path = f"{folder_name}/{clean_file_name}.json"
+
+    with open(json_path, 'w', encoding="utf-8") as f:
+        json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
+
+    return json_path
