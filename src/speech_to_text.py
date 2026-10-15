@@ -1,6 +1,7 @@
 import python_tools
 import json, os
 from dataclasses import dataclass
+from typing import List
 
 @dataclass
 class Transcription:
@@ -45,3 +46,24 @@ class SpeechToText:
         with open(file_name, 'w', encoding="utf-8") as f:
             full_text = ' '.join([segment.text for segment in self.transcript])
             f.write(full_text)
+
+    def merge_transcript_timespan(self, minutes: int) -> List[Transcription]:
+        window_seconds = minutes * 60
+        merged: List[Transcription] = []
+        block_start_seconds = 0.0
+
+        for segment in self.transcript:
+            segment_start_seconds = python_tools.time_str_to_seconds(segment.start)
+
+            if not merged or segment_start_seconds >= block_start_seconds + window_seconds:
+                # Start a new block anchored at this segment's start time
+                merged.append(Transcription(start=segment.start, end=segment.end, text=segment.text))
+                block_start_seconds = segment_start_seconds
+            else:
+                # Extend the current block
+                current = merged[-1]
+                current.end = segment.end
+                current.text += segment.text
+
+        self.transcript = merged
+        return merged
